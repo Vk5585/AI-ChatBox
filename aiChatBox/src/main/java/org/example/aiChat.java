@@ -25,7 +25,7 @@ public class aiChat<API> extends JFrame {
     private OpenAiService openAiService;
 
     // Put your real API key here
-    private static final String API_KEY = "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";  // your key here
+    private static final String API_KEY = "OPENAI_API_KEY";
 
     public aiChat() {
         setTitle("AI ChatBox");
@@ -124,4 +124,5 @@ public class aiChat<API> extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new aiChat().setVisible(true));
     }
+
 }
