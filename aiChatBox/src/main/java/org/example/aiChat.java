@@ -1,12 +1,5 @@
 package org.example;
 
-/*
- this only answer for
-1. hi
-2. what is java swing?
-3. tell me java basics?
-*/
-
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
@@ -19,22 +12,20 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class aiChat<API> extends JFrame {
+public class aiChat extends JFrame {
     private JTextArea chatArea;
     private JTextField inputField;
     private OpenAiService openAiService;
-
-    // Put your real API key here
-    private static final String API_KEY = "OPENAI_API_KEY";
+    private String apiKey;  
 
     public aiChat() {
-        setTitle("AI ChatBox");
+        setTitle("AI ChatBox - Secure OpenAI Integration");
         setSize(600, 700);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
         initUI();
-        initAI();
+        initAI();  
     }
 
     private void initUI() {
@@ -44,12 +35,12 @@ public class aiChat<API> extends JFrame {
         chatArea.setEditable(false);
         chatArea.setLineWrap(true);
         chatArea.setWrapStyleWord(true);
-        chatArea.setBackground(Color.lightGray);
+        chatArea.setBackground(Color.decode("#F0F8FF"));  // Light blue
         chatArea.setForeground(Color.BLACK);
         chatArea.setFont(new Font("Consolas", Font.PLAIN, 14));
 
         JScrollPane scrollPane = new JScrollPane(chatArea);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Chat"));
+        scrollPane.setBorder(BorderFactory.createTitledBorder("AI Chat"));
 
         inputField = new JTextField();
         JButton sendButton = new JButton("Send");
@@ -66,7 +57,29 @@ public class aiChat<API> extends JFrame {
     }
 
     private void initAI() {
-        openAiService = new OpenAiService(API_KEY);
+        apiKey = System.getenv("OPENAI_API_KEY");
+        if (apiKey == null || apiKey.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "❌ OPENAI_API_KEY environment variable missing!\n\n" +
+                "Setup:\n" +
+                "1. Run → Edit Configurations\n" +
+                "2. Environment variables → +\n" +
+                "3. Name: OPENAI_API_KEY\n" +
+                "4. Value: sk-your-new-key-from-openai.com\n" +
+                "5. Apply & Run",
+                "API Key Required", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
+
+        try {
+            openAiService = new OpenAiService(apiKey);
+            addWelcomeMessage();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "❌ OpenAI Service Error: " + e.getMessage(),
+                "Initialization Failed", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
     }
 
     private void sendMessage(ActionEvent e) {
@@ -80,49 +93,53 @@ public class aiChat<API> extends JFrame {
             try {
                 String reply = askAI(text);
                 SwingUtilities.invokeLater(() ->
-                        append("AI [" + timeNow() + "]: " + reply));
+                    append("🤖 AI [" + timeNow() + "]: " + reply));
             } catch (Exception ex) {
                 SwingUtilities.invokeLater(() ->
-                        append("AI: Error - " + ex.getMessage()));
+                    append("❌ AI Error: " + ex.getMessage()));
             }
         }).start();
     }
 
     private String askAI(String prompt) {
-        String p = prompt.toLowerCase().trim();
+        try {
+            ChatCompletionRequest request = ChatCompletionRequest.builder()
+                .model("gpt-3.5-turbo")
+                .messages(List.of(new ChatMessage(ChatMessageRole.USER.value(), prompt)))
+                .maxTokens(200)
+                .temperature(0.7)
+                .build();
 
-        if (p.equals("hi") || p.equals("hello")) {
-            return "Hi! I am your offline Java chat bot. Ask me anything about Java or your projects.";
-        } else if (p.contains("java swing")) {
-            return "Java Swing is a GUI toolkit in Java. You build windows using JFrame, add components like JButton, JTextField, and handle events with ActionListener.";
-        } else if (p.contains("java basics")) {
-            return "Java basics include variables, data types, if/else, loops, methods, classes, and objects. Practice small programs every day.";
-        } else if (p.contains("chat application")) {
-            return "A chat application usually has a client and server. Clients send messages to the server, which broadcasts them to other clients over sockets.";
-        } else if (p.contains("project idea")) {
-            return "Good Java project ideas: ToDo app, calculator, notes app, quiz app, and your current AI ChatBox with more features.";
+            return openAiService.createChatCompletion(request)
+                .getChoices().get(0).getMessage().getContent();
+        } catch (Exception e) {
+            return "API Error: " + e.getMessage() + 
+                   "\n\nCheck your API key and internet connection.";
         }
-
-        // default
-        return "You said: " + prompt + " I am a simple offline bot, so I can only answer basic programmed questions.";
     }
 
     private void append(String msg) {
         chatArea.append(msg + "\n\n");
-                chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 
     private String timeNow() {
         return LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("HH:mm"));
+            .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
     private void addWelcomeMessage() {
-        append("AI: Hi! I am your Java AI ChatBox. Type a message below and press Enter.");
+        append("🤖 AI: Hi! I'm your secure OpenAI-powered chat assistant. Ask me anything about Java, programming, projects, or general questions!");
+        append("💡 Tip: Check Run Configurations → Environment variables for OPENAI_API_KEY");
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new aiChat().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            try {
+                new aiChat().setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
-
 }
